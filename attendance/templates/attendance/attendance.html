@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mark Attendance</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 90px;
+            justify-content: center;
+            max-width: 1100px;
+            margin: auto;
+            margin-top: 200px;
+        }
+        .box {
+            background-color: #fff;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 360px;
+        }
+        .box h1 {
+            font-size: 1.5em;
+            color: #333;
+            margin-top: 0;
+        }
+        .box form,
+        .box div {
+            margin-bottom: 20px;
+        }
+        input[type="date"],
+        select,
+        input[type="checkbox"],
+        button {
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            width: 100%;
+        }
+        button {
+            background-color: #0056b3;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #004494;
+        }
+    </style>
+    
+</head>
+<body>
+    {% extends 'base.html' %}
+
+    {% block title %}Page Title{% endblock %}
+    
+    {% block content %}
+    <div class="container">
+        <div class="box">
+            <div class="smart-search">
+                <form method="GET" action="">
+                    <select name="filter" onchange="this.form.submit()">
+                        <option value="everyone">Everyone</option>
+                        <option value="active">Active Members</option>
+                    </select>
+                </form>
+            </div>
+            <div class="attendance-list">
+                <h1>Attendance List</h1>
+                <form method="GET" action="">
+                    <label for="filter_date">Filter by Date:</label>
+                    <input type="date" id="filter_date" name="filter_date" onchange="this.form.submit()" value="{{ filter_date|default:today|date:'Y-m-d' }}">
+                </form>
+            
+                {% for record in attendance_records %}
+                <div>
+                    <p data-member-id="{{ record.member.id }}">
+                        {{ record.member.first_name }} - {{ record.date|date:"Y-m-d" }} - 
+                        {% if record.service %}{{ record.service.name }} at {{ record.service.get_time_display }}{% else %}Service Unspecified{% endif %} - 
+                        {% if record.status %}Present{% else %}Absent{% endif %}
+                    </p>
+                </div>
+                {% empty %}
+                <p>No attendance records found.</p>
+                {% endfor %}
+            </div>
+        </div>
+    
+        <div class="box">
+            <div class="add-attendance">
+                <h1>Mark Attendance</h1>
+                <form method="POST" action="{% url 'mark_attendance' %}"> <!-- Ensure this URL is correctly pointed to your view -->
+                    {% csrf_token %}
+                    <label for="attendance_date">Date:</label>
+                    <input type="date" id="attendance_date" name="attendance_date" required value="{{ today|date:'Y-m-d' }}">
+                    <label for="service">Service:</label>
+                    <select id="service" name="service">
+                   <!-- Debugging to check if services are being passed to the template -->
+{% for service in services %}
+<p>{{ service.name }}</p>
+{% endfor %}
+
+                    </select>
+                    <fieldset>
+                        <legend>Mark Present</legend>
+                        {% for member in members %}
+                        <div>
+                            <input type="checkbox" id="present_member_{{ member.id }}" name="present_members" value="{{ member.id }}">
+                            <label for="present_member_{{ member.id }}">{{ member.first_name }} (Present)</label>
+                        </div>
+                        {% empty %}
+                        <p>No members found.</p>
+                        {% endfor %}
+                    </fieldset>
+                    <fieldset>
+                        <legend>Mark Absent</legend>
+                        <!-- Assuming you want to mark absence explicitly; otherwise, this can be omitted. -->
+                        {% for member in members %}
+                        <div>
+                            <input type="checkbox" id="absent_member_{{ member.id }}" name="absent_members" value="{{ member.id }}">
+                            <label for="absent_member_{{ member.id }}">{{ member.first_name }} (Absent)</label>
+                        </div>
+                        {% empty %}
+                        <p>No members found.</p>
+                        {% endfor %}
+                    </fieldset>
+                    <button type="submit">Submit Attendance</button>
+                </form>
+            </div>
+        </div>
+    
+        <div class="box">
+            <div id="member-details" class="member-details">
+                <h1>Member Details</h1>
+                <p>Select a member to view details.</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const memberDetailsContainer = document.getElementById('member-details');
+            const members = document.querySelectorAll('.attendance-list p');
+    
+            members.forEach(member => {
+                member.addEventListener('click', function () {
+                    const memberId = this.getAttribute('data-member-id');
+                    fetch(`/members/${memberId}/details/`)
+                        .then(response => response.json())
+                        .then(data => {
+                            memberDetailsContainer.innerHTML = `<h2>Details for ${data.first_name} ${data.last_name}</h2>
+                                                                <p>First Name: ${data.first_name}</p>
+                                                                <p>Last Name: ${data.last_name}</p>
+                                                                <P>Birthday: ${data.birthday}</p>
+                                                            <p>Age: ${data.age}</p>
+    
+                                                                <!-- Add more fields as needed -->`;
+                        })
+                        .catch(error => console.error('Error fetching member details:', error));
+                });
+            });
+        });
+    </script>
+    {% endblock %}
+    </body>
+</html>    

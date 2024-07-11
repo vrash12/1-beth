@@ -1,0 +1,16 @@
+<!-- templates/ministries/ministry_list.html -->
+
+{% extends 'base.html' %}
+
+
+{% block content %}
+  <h1>Ministries</h1>
+  <ul>
+    {% for ministry in ministries %}
+      <li>
+        <strong>{{ ministry.name }}</strong>: {{ ministry.description }}
+        <br>Lead by: {{ ministry.minister.first_name }} {{ ministry.minister.last_name }}
+      </li>
+    {% endfor %}
+  </ul>
+{% endblock %}
